@@ -1,0 +1,20 @@
+# 敏感配置檔案
+config.json
+
+# 瀏覽器擴充功能打包檔案
+*.zip
+*.crx
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+
+# 編輯器配置
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 暫存檔案
+tmp/
+temp/

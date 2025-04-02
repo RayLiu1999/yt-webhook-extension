@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>處理錯誤</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 90%;
+    }
+    h1 {
+      color: #e74c3c;
+      margin-bottom: 20px;
+    }
+    .error-icon {
+      font-size: 60px;
+      color: #e74c3c;
+      margin-bottom: 20px;
+    }
+    .error-message {
+      background-color: #fdecea;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+      color: #333;
+      text-align: left;
+      overflow-wrap: break-word;
+    }
+    .back-btn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+      transition: background-color 0.3s;
+    }
+    .back-btn:hover {
+      background-color: #2980b9;
+    }
+    .technical-details {
+      margin-top: 30px;
+      color: #777;
+      font-size: 0.9em;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>處理失敗</h1>
+    <div class="error-icon">⚠️</div>
+    <p>很抱歉，處理您的請求時發生錯誤。</p>
+    <div class="error-message" id="error-message">
+      正在載入錯誤訊息...
+    </div>
+    <p>請確認：</p>
+    <ul style="text-align: left;">
+      <li>您正在一個有效的YouTube影片頁面</li>
+      <li>webhook服務正在運行</li>
+      <li>網路連線正常</li>
+    </ul>
+    <button class="back-btn" onclick="goBack()">返回上一頁</button>
+    <div class="technical-details">
+      <h3>技術細節</h3>
+      <p id="technical-details">時間：<span id="timestamp"></span></p>
+    </div>
+  </div>
+
+  <!-- 使用外部腳本檔案以避免 CSP 問題 -->
+  <script src="error.js"></script>
+</body>
+</html>

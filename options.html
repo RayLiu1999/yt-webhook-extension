@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube 下載擴充功能設定</title>
+  <style>
+    body {
+      font-family: 'Microsoft JhengHei', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #cc0000;
+      margin-top: 0;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    .description {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+    button {
+      background-color: #cc0000;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #aa0000;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+    }
+    .toggle-password {
+      margin-top: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #666;
+      display: inline-block;
+    }
+    .toggle-password:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>YouTube 下載擴充功能設定</h1>
+    
+    <div class="form-group">
+      <label for="api-key">OpenAI API Key</label>
+      <input type="password" id="api-key" placeholder="請輸入您的 OpenAI API Key">
+      <div class="toggle-password" id="toggle-api-key">顯示 API Key</div>
+      <div class="description">此 API Key 將用於 webhook 請求的授權，作為 Bearer Token 傳遞。</div>
+    </div>
+    <button id="save-button">儲存設定</button>
+    
+    <div id="status-message" class="status"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

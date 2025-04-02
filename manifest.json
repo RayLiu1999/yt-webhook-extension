@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube 下載插件",
+  "version": "1.2.1",
+  "description": "YouTube 下載（可選擇不同品質、格式）、總結影片功能",
+  "author": "Ray Liu",
+  "permissions": ["activeTab", "scripting", "webRequest", "contextMenus", "tabs", "storage", "downloads", "notifications"],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "trigger-download": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+6",
+        "mac": "Command+Shift+6"
+      },
+      "description": "快速下載目前影片"
+    },
+    "toggle-webhook-url": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+9",
+        "mac": "Command+Shift+9"
+      },
+      "description": "切換線上/本地 Webhook URL"
+    }
+  }
+}
