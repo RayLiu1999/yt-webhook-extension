@@ -158,9 +158,10 @@ function loadSettings() {
  * @param {string} quality - 品質設定
  * @param {string} format - 格式設定
  * @param {boolean} summarize - 是否為總結請求
+ * @param {string} title - 影片標題（選填）
  * @returns {string} - 構建好的 Webhook URL
  */
-function buildWebhookUrl(videoUrl, quality, format, summarize = false) {
+function buildWebhookUrl(videoUrl, quality, format, summarize = false, title = '') {
   // 使用設定中的 webhook URL
   const baseWebhookUrl = defaultSettings.webhookUrl;
   
@@ -170,6 +171,15 @@ function buildWebhookUrl(videoUrl, quality, format, summarize = false) {
   // 如果是總結請求，添加 summarize 參數
   if (summarize) {
     webhookUrl += '&summarize=1';
+  }
+  
+  // 如果提供了影片標題，清理並添加到 URL 中
+  if (title && title.trim() !== '') {
+    // 使用清理函數處理標題
+    let cleanTitle = cleanYouTubeTitle(title);
+    
+    webhookUrl += `&title=${encodeURIComponent(cleanTitle)}`;
+    console.log('已添加影片標題到請求 URL');
   }
     
   // 如果有設定 API Key，添加為 token 參數
@@ -181,6 +191,27 @@ function buildWebhookUrl(videoUrl, quality, format, summarize = false) {
   }
   
   return webhookUrl;
+}
+
+/**
+ * 清理 YouTube 標題，移除前面的通知數字和" - YouTube"
+ * @param {string} title - 原始 YouTube 標題
+ * @returns {string} - 清理後的標題
+ */
+function cleanYouTubeTitle(title) {
+  if (!title) return '';
+  
+  // 移除標題前面的通知數字，如 "(2) "，"(10) "等
+  let cleanedTitle = title.replace(/^\([0-9]+\)\s+/, '');
+  
+  // 移除標題後面的" - YouTube"
+  cleanedTitle = cleanedTitle.replace(/ - YouTube$/, '');
+  
+  if (cleanedTitle !== title) {
+    console.log('已清理 YouTube 標題，從', title, '到', cleanedTitle);
+  }
+  
+  return cleanedTitle;
 }
 
 /**
@@ -274,8 +305,8 @@ function summarizeVideo(videoUrl, videoTitle) {
     
     // 先從儲存空間重新獲取最新的設定
     loadSettings().then(() => {
-      // 建立含參數的 webhook URL (固定使用mp3格式並添加summarize=1參數)
-      const webhookUrl = buildWebhookUrl(videoUrl, defaultSettings.quality, 'mp3', true);
+      // 建立含參數的 webhook URL (固定使用mp3格式並添加summarize=1參數及影片標題)
+      const webhookUrl = buildWebhookUrl(videoUrl, defaultSettings.quality, 'mp3', true, videoTitle);
       
       console.log('發送總結請求至:', webhookUrl);
       
@@ -517,7 +548,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   } else if (info.menuItemId === 'youtube-summarize') {
     // 獲取當前影片URL
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      summarizeVideo(tabs[0].url, tabs[0].title.replace(' - YouTube', ''));
+      summarizeVideo(tabs[0].url, cleanYouTubeTitle(tabs[0].title));
     });
   }
 });
@@ -621,7 +652,7 @@ chrome.commands.onCommand.addListener((command) => {
   else if (command === "trigger-download") {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const videoUrl = tabs[0].url;
-      const videoTitle = tabs[0].title.replace(' - YouTube', '');
+      const videoTitle = cleanYouTubeTitle(tabs[0].title);
       
       // 確保 URL 有效
       if (!isValidYouTubeUrl(videoUrl)) {
