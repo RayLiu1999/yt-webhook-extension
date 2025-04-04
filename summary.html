@@ -11,6 +11,7 @@
       margin: 0;
       padding: 20px;
       color: #333;
+      min-height: 100vh;
     }
     .container {
       max-width: 800px;
@@ -50,6 +51,39 @@
       padding: 2px 5px;
       border-radius: 3px;
     }
+    
+    /* 載入狀態的樣式 */
+    .loading-view {
+      text-align: center;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #ff0000;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 2s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .status {
+      margin-top: 20px;
+      font-style: italic;
+      color: #777;
+    }
+    
+    /* 顯示/隱藏元素 */
+    .hidden {
+      display: none;
+    }
     .copy-btn {
       background-color: #4CAF50;
       color: white;
@@ -73,7 +107,16 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- 載入中視圖 -->
+  <div id="loading-view" class="container loading-view">
+    <h1>正在處理您的影片</h1>
+    <p>系統正在分析影片內容並生成總結，請稍候片刻。</p>
+    <div class="loader"></div>
+    <p class="status">已處理 <span id="process-time">0</span> 秒，請耐心等待...</p>
+  </div>
+
+  <!-- 總結內容視圖 -->
+  <div id="summary-view" class="container hidden">
     <h1>YouTube 影片總結</h1>
     <div class="video-info" id="video-info">
       正在載入影片資訊...

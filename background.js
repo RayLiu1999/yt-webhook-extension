@@ -1,4 +1,50 @@
+// ==============================================
+// Service Worker Keep-Alive 機制
+// 確保 Service Worker 不會休眠，避免跳轉問題
+// ==============================================
+
+// 設定唤醒間隔時間（毫秒）
+// 注意：不要設置太短，以避免使用過多系統資源
+// 25 秒是一個更平衡的選擇，這比大多數 Service Worker 的休眠間隔短
+// (通常為 30 秒左右)
+const KEEP_ALIVE_INTERVAL = 25000;
+
+// Keep-Alive 函數
+function keepServiceWorkerAlive() {
+  // 記錄唤醒時間戳記
+  const now = new Date();
+  const timestamp = now.toISOString();
+  
+  // 將時間存入 chrome.storage
+  chrome.storage.local.set({ 'serviceWorkerLastWakeup': timestamp }, function() {
+    // 進行一個簡單讀取操作來保持 Service Worker 活躍
+    chrome.storage.local.get(['serviceWorkerLastWakeup'], function(data) {
+      console.log('服務工作器唤醒成功，時間：', data.serviceWorkerLastWakeup);
+    });
+  });
+}
+
+// 啟動定期唤醒
+
+// 1. 使用 setInterval 進行定期唤醒
+const keepAliveInterval = setInterval(keepServiceWorkerAlive, KEEP_ALIVE_INTERVAL);
+
+// 2. 初始化時立即執行一次
+keepServiceWorkerAlive();
+
+// 3. 使用備用的定時喚醒機制
+// 每 40 秒再次執行一次喚醒，以防主要機制失效
+setTimeout(function backupWakeup() {
+  console.log('備用定時器喚醒 Service Worker');
+  keepServiceWorkerAlive();
+  
+  // 過一段時間後再次執行
+  setTimeout(backupWakeup, 40000);
+}, 40000);
+
+// ==============================================
 // 默認設置
+// ==============================================
 let defaultSettings = {
   quality: 'highest',  // 默認品質
   format: 'mp4',       // 默認格式
@@ -212,18 +258,32 @@ function summarizeVideo(videoUrl, videoTitle) {
     return;
   }
   
-  // 先從儲存空間重新獲取最新的設定
-  loadSettings().then(() => {
-    // 建立含參數的 webhook URL (固定使用mp3格式並添加summarize=1參數)
-    const webhookUrl = buildWebhookUrl(videoUrl, defaultSettings.quality, 'mp3', true);
+  // 取得影片 ID
+  const videoId = new URL(videoUrl).searchParams.get('v');
+  if (!videoId) {
+    console.error('無法從 URL 提取影片 ID:', videoUrl);
+    showErrorPage('無法識別影片 ID');
+    return;
+  }
+  
+  // 清除舊的總結數據，避免顯示舊數據
+  console.log('清除舊總結數據，準備處理新影片:', videoId);
+  chrome.storage.local.remove(['currentSummary', 'summaryReady'], function() {
+    // 存儲當前正在處理的影片 ID，用於後續驗證
+    chrome.storage.local.set({ 'currentProcessingVideoId': videoId });
     
-    console.log('發送總結請求至:', webhookUrl);
-    
-    // 準備請求標頭
-    const headers = buildRequestHeaders();
-    
-    // 先創建一個新分頁來顯示加載中狀態
-    chrome.tabs.create({ url: 'loading.html' }, (newTab) => {
+    // 先從儲存空間重新獲取最新的設定
+    loadSettings().then(() => {
+      // 建立含參數的 webhook URL (固定使用mp3格式並添加summarize=1參數)
+      const webhookUrl = buildWebhookUrl(videoUrl, defaultSettings.quality, 'mp3', true);
+      
+      console.log('發送總結請求至:', webhookUrl);
+      
+      // 準備請求標頭
+      const headers = buildRequestHeaders();
+      
+      // 先創建一個新分頁並直接開啟 summary.html
+      chrome.tabs.create({ url: 'summary.html' }, (newTab) => {
       // 先嘗試正常模式，如果失敗則回退到 no-cors 模式
       fetch(webhookUrl, {
         method: 'GET',
@@ -263,13 +323,20 @@ function summarizeVideo(videoUrl, videoTitle) {
           content: jsonData.data.content,
           videoTitle,
           videoUrl,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          videoId: new URL(videoUrl).searchParams.get('v') // 存儲影片 ID 以便驗證
         };
 
         console.log('總結資料:', summaryData);
         
-        chrome.storage.local.set({ 'currentSummary': summaryData }, function() {
-          console.log('總結已存入 storage');
+        // 存入總結資料並設置 summaryReady 標記
+        chrome.storage.local.set({ 
+          'currentSummary': summaryData,
+          'summaryReady': true, // 標記總結已準備好可顯示
+          'pendingSummaryTabId': newTab.id, // 存儲分頁 ID
+          'lastUpdated': Date.now() // 添加時間戳以助判斷新舊
+        }, function() {
+          console.log('總結已存入 storage，summaryReady 已設置為 true');
           // 將回應內容顯示在新分頁中
           chrome.tabs.update(newTab.id, { 
             url: 'summary.html' // 不再傳遞參數
@@ -283,6 +350,7 @@ function summarizeVideo(videoUrl, videoTitle) {
           });
       });
     });
+  });
   });
 }
 
