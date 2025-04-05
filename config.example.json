@@ -1,7 +1,11 @@
 {
   "WEBHOOK_URLS": {
     "online": "https://your-online-webhook-url.com/webhook/download-video",
-    "local": "http://localhost:5678/webhook/download-video"
+    "local": "http://localhost:5678/webhook/download-video",
+    "summary": {
+      "online": "https://your-online-webhook-url.com/webhook/summary-content",
+      "local": "http://localhost:5678/webhook/summary-content"
+    }
   },
   "DOWNLOAD_URL": "https://your-download-base-url.com/",
   "BEARER_TOKEN": "your-bearer-token-here"

@@ -62,6 +62,10 @@ let CONFIG = {
     online: '',
     local: ''
   },
+  SUMMARY_URLS: {
+    online: '',
+    local: ''
+  },
   DOWNLOAD_URL: '',
   BEARER_TOKEN: ''
 };
@@ -227,6 +231,56 @@ function buildRequestHeaders() {
   headers['Authorization'] = `Bearer ${defaultSettings.bearerToken}`;
   
   return headers;
+}
+
+// /**
+//  * 檢查視頻是否已有總結
+//  * @param {string} videoId - YouTube 視頻 ID
+//  * @returns {Promise} - 返回包含檢查結果的 Promise
+//  */
+/**
+ * 檢查視頻是否已有總結
+ * @param {string} videoId - YouTube 視頻 ID
+ * @returns {Promise} - 返回包含檢查結果的 Promise
+ */
+function checkVideoSummary(videoId) {
+  return new Promise((resolve, reject) => {
+    // 從設定檔中獲取 webhook URL
+    const environment = defaultSettings.environment === 'local' ? 'local' : 'online';
+    const baseUrl = defaultSettings.WEBHOOK_URLS?.summary?.[environment] || 
+                    `http://localhost:5678/webhook/summary-content`;
+    
+    // 構建完整的 webhook URL
+    const webhookUrl = baseUrl.includes('?') ? 
+      `${baseUrl}&video_id=${videoId}` : 
+      `${baseUrl}?video_id=${videoId}`;
+    
+    console.log('檢查視頻總結:', webhookUrl);
+    
+    // 準備請求標頭
+    const headers = buildRequestHeaders();
+    
+    // 發送請求檢查
+    fetch(webhookUrl, {
+      method: 'GET',
+      headers: headers,
+      signal: AbortSignal.timeout(10000) // 10秒逾時
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('檢查總結回應:', data);
+      resolve(data);
+    })
+    .catch(error => {
+      console.error('檢查視頻總結錯誤:', error);
+      reject(error);
+    });
+  });
 }
 
 /**
@@ -482,13 +536,6 @@ function createContextMenus() {
       contexts: ['page', 'link', 'video']
     });
     
-    // 創建影片總結選項
-    chrome.contextMenus.create({
-      id: 'youtube-summarize',
-      title: '總結影片',
-      contexts: ['page', 'link', 'video']
-    });
-    
     // 創建品質選項選單
     chrome.contextMenus.create({
       id: 'youtube-download-quality',
@@ -545,11 +592,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     console.log(`格式已設置為: ${format}`);
     // 通知內容腳本設置已更改
     chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated', settings: defaultSettings });
-  } else if (info.menuItemId === 'youtube-summarize') {
-    // 獲取當前影片URL
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      summarizeVideo(tabs[0].url, cleanYouTubeTitle(tabs[0].title));
-    });
   }
 });
 
@@ -603,6 +645,93 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('當前模式: ' + (defaultSettings.isOnlineMode ? '線上' : '本地'));
     console.log('Webhook URL: ' + defaultSettings.webhookUrl);
     return true;
+  }
+  else if (message && message.action === 'summarizeVideo' && message.videoUrl) {
+    console.log('收到總結影片請求:', message.videoUrl);
+    
+    // 直接同步回應，避免異步對話問題
+    sendResponse({ received: true });
+    
+    // 直接調用 summarizeVideo 函數
+    try {
+      // 使用傳入的 URL 和標題
+      summarizeVideo(message.videoUrl, message.videoTitle || '');
+    } catch (error) {
+      console.error('總結影片時發生錯誤:', error);
+    }
+    
+    return false; // 不使用靜態回調
+  }
+  else if (message && message.action === 'checkVideoSummary' && message.videoId) {
+    console.log('收到檢查視頻總結請求', message.videoId);
+
+    // 直接同步回應，避免異步對話問題
+    sendResponse({ received: true });
+    
+    // 獲取發送方的標籤頁 ID
+    const senderTabId = sender.tab ? sender.tab.id : null;
+    if (!senderTabId) {
+      console.error('無法取得發送方標籤頁 ID');
+      return false;
+    }
+    
+    // 使用修改過的 checkVideoSummary 函數
+    checkVideoSummary(message.videoId)
+      .then(result => {
+        console.log('檢查總結結果:', result);
+        
+        // 判斷是否有總結
+        let hasSummary = false;
+        let summaryContent = '';
+        
+        if (result && result.status === 'success' && result.data && result.data.content) {
+          hasSummary = true;
+          summaryContent = result.data.content;
+        } else {
+          // 用於測試的虛擬總結內容
+          // 注意：在正式環境應該移除這一部分
+          if (defaultSettings.debug) {
+            hasSummary = true;
+            summaryContent = '這是一個測試總結內容。\n\n從這個視頻中提取出來的重要資訊如下：\n1. 第一個重點是介紹了這個功能的實現方式\n2. 第二個重點是介紹了使用範例與注意事項\n3. 第三個重點是說明了文件之間的交互方式\n\n總結：這是一個測試總結內容，用於測試總結功能是否正確運作。';
+          }
+        }
+        
+        // 發送結果到內容腳本
+        setTimeout(() => {
+          try {
+            chrome.tabs.sendMessage(senderTabId, {
+              type: 'summaryCheckResult',
+              success: true,
+              hasSummary: hasSummary,
+              data: summaryContent
+            });
+            console.log('已成功發送總結到標籤頁', senderTabId);
+          } catch (error) {
+            console.error('發送訊息到標籤頁時出錯：', error);
+          }
+        }, 100);
+      })
+      .catch(error => {
+        console.error('檢查視頻總結錯誤:', error);
+        
+        // 發送錯誤結果到內容腳本
+        setTimeout(() => {
+          try {
+            chrome.tabs.sendMessage(senderTabId, {
+              type: 'summaryCheckResult',
+              success: false,
+              hasSummary: false,
+              error: error.message
+            });
+            console.log('已成功發送錯誤到標籤頁', senderTabId);
+          } catch (err) {
+            console.error('發送錯誤訊息到標籤頁時出錯：', err);
+          }
+        }, 100);
+      });
+    
+    // 返回 false 表示不使用靜态回調
+    return false;
   }
   else if (message && message.action === 'triggerWebhook' && message.url) {
     // 取得品質和格式參數
