@@ -422,10 +422,11 @@ function showRestoreButton() {
       console.log('重新檢查視頻總結');
       const hasSummary = await checkVideoSummary();
       if (hasSummary) {
-        console.log('有總結，重新創建總結按鈕');
+        console.log('有總結，重新創建查看總結按鈕');
         createCheckSummaryButton();
       } else {
-        console.log('沒有總結，不創建總結按鈕');
+        console.log('沒有總結，創建總結影片按鈕');
+        createSummarizeVideoButton();
       }
     }
   });
@@ -1139,6 +1140,7 @@ async function initialize() {
   
   // 檢查按鈕隱藏狀態
   buttonIsHidden = localStorage.getItem('youtube_buttons_hidden') === 'true';
+  console.log('按鈕隱藏狀態:', buttonIsHidden);
   
   // 檢查當前是否為 YouTube 影片頁面
   if (isYouTubeVideoPage()) {
@@ -1147,23 +1149,25 @@ async function initialize() {
     if (buttonIsHidden) {
       console.log('Button is hidden by user preference, showing restore button');
       showRestoreButton();
+      // 當按鈕隱藏時，不創建任何其他按鈕
     } else {
       console.log('Adding download button');
       createDownloadButton();
-    }
-    
-    // 檢查視頻是否有總結
-    await checkVideoSummary(); // 結果已存入全局變數 hasSummary
-    console.log('是否有總結:', hasSummary);
-    
-    if (hasSummary) {
-      // 如果已有總結，只顯示查看總結按鈕
-      console.log('創建查看總結按鈕');
-      createCheckSummaryButton();
-    } else {
-      // 如果沒有總結，顯示總結影片按鈕
-      console.log('創建總結影片按鈕');
-      createSummarizeVideoButton();
+      
+      // 只有在按鈕不隱藏時，才檢查視頻是否有總結並創建相應按鈕
+      // 檢查視頻是否有總結
+      await checkVideoSummary(); // 結果已存入全局變數 hasSummary
+      console.log('是否有總結:', hasSummary);
+      
+      if (hasSummary) {
+        // 如果已有總結，只顯示查看總結按鈕
+        console.log('創建查看總結按鈕');
+        createCheckSummaryButton();
+      } else {
+        // 如果沒有總結，顯示總結影片按鈕
+        console.log('創建總結影片按鈕');
+        createSummarizeVideoButton();
+      }
     }
   }
   
